@@ -321,6 +321,8 @@ function onSelBoxMouseDown(e) {
 
 function onSelDrag(e) {
   if (!sel.dragging) return;
+  // Convert mouse client coordinates to wrapper-relative offsets, then clamp so the
+  // selection box cannot be dragged outside the map wrapper bounds.
   const wrapper = document.querySelector('.map-wrapper').getBoundingClientRect();
   const dx = e.clientX - sel.startX;
   const dy = e.clientY - sel.startY;
@@ -569,6 +571,7 @@ function bindControls() {
     });
   });
 
+  document.getElementById('btn-retry').addEventListener('click', () => window.location.reload());
   document.getElementById('btn-export').addEventListener('click', exportPng);
 }
 

@@ -158,11 +158,9 @@ function gkToWgs84(x, y) {
   const a = 6378137.0;
   const e2 = 0.00669437999014;
   const k0 = 1.0;
-  const lambda0 = (34 / 3) * (Math.PI / 180); // ~11.667° — wait, M34 = 34/3 = 11.333°?
-
-  // MGI Gauss-Krüger: 3 zones, M28/M31/M34 with meridians 10.333°/13.333°/16.333°
-  // For Vienna (M34): lambda0 = 16.333333°
-  const lambda0Deg = 16.333333;
+  // MGI Gauss-Krüger has three zones (M28/M31/M34) with central meridians
+  // 10.333°/13.333°/16.333°.  Vienna falls in zone M34 (central meridian 16°20' = 16.333°).
+  const lambda0Deg = 16.333333; // central meridian of MGI Gauss-Krüger M34 (Vienna)
   const lambda0Rad = lambda0Deg * (Math.PI / 180);
   const falseEasting = 750000;
 
@@ -337,7 +335,8 @@ function processRows(rows) {
     if (districtCol) {
       const district = String(row[districtCol] ?? '');
       const distNum = parseInt(district, 10);
-      // Vienna: district code starts with 9 (901-923) or 9 as Bundesland code
+      // Vienna district codes per Statistik Austria: 901 (1st Bezirk) to 923 (23rd Bezirk).
+      // The code always starts with 9 (Bundesland Wien = 9).
       const isVienna = district.startsWith('9') && distNum >= 900 && distNum <= 999;
       if (!isVienna) continue;
     }
