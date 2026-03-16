@@ -1,0 +1,52 @@
+name: Deploy Accident Heatmap to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/accident-heatmap/**'
+  # Also deploy whenever the data is freshly fetched
+  workflow_run:
+    workflows: ['Fetch Accident Data']
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one concurrent deployment; cancel in-progress runs
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build static site
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload accident-heatmap as Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/accident-heatmap
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

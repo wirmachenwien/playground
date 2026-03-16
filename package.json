@@ -1,0 +1,10 @@
+{
+  "name": "playground",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "fetch-accident-data": "npm run fetch-data --workspace=apps/accident-heatmap"
+  }
+}

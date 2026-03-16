@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vienna Accident Heatmap</title>
+
+  <!-- Leaflet (vendored) -->
+  <link rel="stylesheet" href="vendor/leaflet.css" />
+  <script src="vendor/leaflet.js"></script>
+
+  <!-- Leaflet.heat (vendored) -->
+  <script src="vendor/leaflet-heat.js"></script>
+
+  <!-- html2canvas for export (vendored) -->
+  <script src="vendor/html2canvas.min.js"></script>
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app" id="app">
+
+    <!-- ── Header ── -->
+    <header class="header">
+      <div class="header-brand">
+        <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 8 L12 16 M8 12 L16 12" stroke-width="1.5"/>
+          <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>
+        </svg>
+        <div>
+          <h1 class="header-title">Vienna Accident Heatmap</h1>
+          <p class="header-subtitle">Statistik Austria · Unfallstatistik OGD</p>
+        </div>
+      </div>
+      <div class="header-meta" id="header-meta">Loading data…</div>
+    </header>
+
+    <!-- ── Body ── -->
+    <div class="body">
+
+      <!-- ── Sidebar ── -->
+      <aside class="sidebar" id="sidebar">
+
+        <!-- Year filter -->
+        <section class="panel">
+          <h2 class="panel-title">Year Range</h2>
+          <div class="year-row">
+            <label for="year-from">From</label>
+            <select id="year-from"></select>
+            <label for="year-to">To</label>
+            <select id="year-to"></select>
+          </div>
+        </section>
+
+        <!-- Involvement filter -->
+        <section class="panel">
+          <h2 class="panel-title">Involvement</h2>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="filter-all" checked />
+              <span class="checkbox-custom"></span>
+              All accidents
+            </label>
+            <label class="checkbox-label cyclist">
+              <input type="checkbox" id="filter-cyclist" />
+              <span class="checkbox-custom"></span>
+              <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3" r="1.5"/><path d="M5 8a3 3 0 1 0 6 0 3 3 0 0 0-6 0z"/><path d="M8 5l-1 3h3"/></svg>
+              Cyclists
+            </label>
+            <label class="checkbox-label pedestrian">
+              <input type="checkbox" id="filter-pedestrian" />
+              <span class="checkbox-custom"></span>
+              <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="2.5" r="1.5"/><path d="M7 5l-2 5h2l1 4h.5l1-4h2L9 5z"/></svg>
+              Pedestrians
+            </label>
+            <label class="checkbox-label motorcycle">
+              <input type="checkbox" id="filter-motorcycle" />
+              <span class="checkbox-custom"></span>
+              <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="11" r="2"/><circle cx="12.5" cy="11" r="2"/><path d="M3.5 11L8 6l2 2 2.5-2"/></svg>
+              Motorcyclists
+            </label>
+          </div>
+        </section>
+
+        <!-- Severity filter -->
+        <section class="panel">
+          <h2 class="panel-title">Severity</h2>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="severity" value="all" checked />
+              <span class="radio-custom"></span>
+              All severities
+            </label>
+            <label class="radio-label fatal">
+              <input type="radio" name="severity" value="fatal" />
+              <span class="radio-custom"></span>
+              Fatal only
+            </label>
+            <label class="radio-label serious">
+              <input type="radio" name="severity" value="serious" />
+              <span class="radio-custom"></span>
+              Serious injury
+            </label>
+            <label class="radio-label minor">
+              <input type="radio" name="severity" value="minor" />
+              <span class="radio-custom"></span>
+              Minor injury
+            </label>
+          </div>
+        </section>
+
+        <!-- Visual settings -->
+        <section class="panel">
+          <h2 class="panel-title">Color Scheme</h2>
+          <div class="color-schemes" id="color-schemes">
+            <button class="scheme-btn active" data-scheme="fire" title="Fire">
+              <span class="scheme-preview scheme-fire"></span>
+              Fire
+            </button>
+            <button class="scheme-btn" data-scheme="classic" title="Classic">
+              <span class="scheme-preview scheme-classic"></span>
+              Classic
+            </button>
+            <button class="scheme-btn" data-scheme="plasma" title="Plasma">
+              <span class="scheme-preview scheme-plasma"></span>
+              Plasma
+            </button>
+            <button class="scheme-btn" data-scheme="viridis" title="Viridis">
+              <span class="scheme-preview scheme-viridis"></span>
+              Viridis
+            </button>
+            <button class="scheme-btn" data-scheme="cool" title="Cool">
+              <span class="scheme-preview scheme-cool"></span>
+              Cool
+            </button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title">Heat Parameters</h2>
+          <div class="slider-group">
+            <label for="radius-slider">
+              Radius <span id="radius-value">15</span>px
+            </label>
+            <input type="range" id="radius-slider" min="5" max="40" value="15" />
+          </div>
+          <div class="slider-group">
+            <label for="blur-slider">
+              Blur <span id="blur-value">20</span>px
+            </label>
+            <input type="range" id="blur-slider" min="2" max="40" value="20" />
+          </div>
+          <div class="slider-group">
+            <label for="opacity-slider">
+              Opacity <span id="opacity-value">80</span>%
+            </label>
+            <input type="range" id="opacity-slider" min="10" max="100" value="80" />
+          </div>
+        </section>
+
+        <!-- Map style -->
+        <section class="panel">
+          <h2 class="panel-title">Map Style</h2>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="tile-style" value="dark" checked />
+              <span class="radio-custom"></span>
+              Dark
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="tile-style" value="light" />
+              <span class="radio-custom"></span>
+              Light
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="tile-style" value="none" />
+              <span class="radio-custom"></span>
+              No basemap
+            </label>
+          </div>
+        </section>
+
+        <!-- Stats -->
+        <section class="panel stats-panel">
+          <h2 class="panel-title">Statistics</h2>
+          <div id="stats-content" class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-value" id="stat-showing">–</span>
+              <span class="stat-label">Showing</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="stat-total">–</span>
+              <span class="stat-label">Total Vienna</span>
+            </div>
+          </div>
+        </section>
+
+      </aside>
+
+      <!-- ── Map area ── -->
+      <div class="map-wrapper">
+        <div id="map"></div>
+
+        <!-- Selection overlay -->
+        <div id="selection-box" class="selection-box hidden">
+          <div class="selection-handle nw"></div>
+          <div class="selection-handle ne"></div>
+          <div class="selection-handle sw"></div>
+          <div class="selection-handle se"></div>
+          <div class="selection-label" id="selection-label">Drag to resize</div>
+        </div>
+
+        <!-- Loading overlay -->
+        <div id="loading-overlay" class="loading-overlay">
+          <div class="loading-spinner"></div>
+          <p>Loading accident data…</p>
+        </div>
+
+        <!-- Error overlay -->
+        <div id="error-overlay" class="error-overlay hidden">
+          <p id="error-message"></p>
+          <button onclick="window.location.reload()">Retry</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Export bar ── -->
+    <footer class="export-bar">
+      <div class="export-section">
+        <span class="export-label">Export area:</span>
+        <div class="export-ratio-group">
+          <button class="ratio-btn active" data-ratio="1:1">1:1</button>
+          <button class="ratio-btn" data-ratio="16:9">16:9</button>
+          <button class="ratio-btn" data-ratio="9:16">9:16</button>
+          <button class="ratio-btn" data-ratio="4:5">4:5</button>
+          <button class="ratio-btn" data-ratio="free">Free</button>
+        </div>
+        <button id="btn-toggle-selection" class="btn btn-secondary">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2" y="2" width="12" height="12" rx="1" stroke-dasharray="3 2"/>
+          </svg>
+          Select area
+        </button>
+      </div>
+      <div class="export-section">
+        <span class="export-label">Width:</span>
+        <input type="number" id="export-width" value="1200" min="400" max="4000" step="100" />
+        <span class="export-label">px</span>
+        <button id="btn-export" class="btn btn-primary" disabled>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M8 2v8M5 7l3 3 3-3M2 11v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-2"/>
+          </svg>
+          Export PNG
+        </button>
+      </div>
+      <div class="export-section footer-attribution">
+        Data: <a href="https://www.data.gv.at/katalog/dataset/strassenverkehrsunfalle-mit-personenschaden-ab-2009"
+                  target="_blank" rel="noopener">Statistik Austria OGD</a>
+        · Map: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
+        · <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
