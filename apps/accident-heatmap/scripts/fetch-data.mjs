@@ -20,7 +20,7 @@ const VIENNA_BOUNDS = {
 };
 
 const QUERY_COUNT = Number.parseInt(process.env.WMS_QUERY_COUNT ?? '1400', 10);
-const CONCURRENCY = Number.parseInt(process.env.WMS_CONCURRENCY ?? '12', 10);
+const CONCURRENCY = Number.parseInt(process.env.WMS_CONCURRENCY ?? '4', 10);
 const FEATURE_COUNT = 10; // Server-side maximum
 
 const FLAG_CYCLIST = 1;
@@ -63,7 +63,7 @@ function timeoutSignal(ms) {
 async function fetchJsonWithRetry(url, retries = 4) {
   let lastErr = null;
   for (let attempt = 1; attempt <= retries; attempt++) {
-    const timeout = timeoutSignal(15000);
+    const timeout = timeoutSignal(25000);
     try {
       const res = await fetch(url, { signal: timeout.signal });
       if (!res.ok) {
@@ -72,13 +72,19 @@ async function fetchJsonWithRetry(url, retries = 4) {
       return await res.json();
     } catch (err) {
       lastErr = err;
-      const wait = 300 * attempt;
+      const jitter = Math.floor(Math.random() * 500);
+      const wait = 350 * (2 ** (attempt - 1)) + jitter;
       await new Promise(resolve => setTimeout(resolve, wait));
     } finally {
       timeout.clear();
     }
   }
   throw lastErr;
+}
+
+function describeError(err) {
+  const code = err?.cause?.code ? ` (${err.cause.code})` : '';
+  return `${err?.message ?? 'unknown error'}${code}`;
 }
 
 async function discoverAvailableYears() {
@@ -195,6 +201,7 @@ async function collectViennaPoints() {
   const samplePoints = buildSamplePoints(QUERY_COUNT);
   let nextIndex = 0;
   let requestCount = 0;
+  let failedCount = 0;
 
   const unique = new Map();
 
@@ -208,7 +215,7 @@ async function collectViennaPoints() {
       const url = buildGetFeatureInfoUrl(lat, lng);
 
       try {
-        const payload = await fetchJsonWithRetry(url);
+        const payload = await fetchJsonWithRetry(url, 6);
         requestCount++;
         const features = payload?.features ?? [];
 
@@ -218,7 +225,12 @@ async function collectViennaPoints() {
           unique.set(converted.key, converted.point);
         }
       } catch (err) {
-        console.warn(`Query failed at sample #${idx + 1}: ${err.message}`);
+        failedCount++;
+        console.warn(`Query failed at sample #${idx + 1}: ${describeError(err)}`);
+      }
+
+      if (idx % 25 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 30));
       }
     }
   }
@@ -233,7 +245,7 @@ async function collectViennaPoints() {
     return a[1] - b[1];
   });
 
-  return { points, requestCount };
+  return { points, requestCount, failedCount };
 }
 
 async function main() {
@@ -245,7 +257,7 @@ async function main() {
   console.log(`Sampling ${QUERY_COUNT} map positions with concurrency ${CONCURRENCY}`);
 
   const years = await discoverAvailableYears();
-  const { points, requestCount } = await collectViennaPoints();
+  const { points, requestCount, failedCount } = await collectViennaPoints();
 
   if (points.length === 0) {
     throw new Error('No points were collected from WMS source');
@@ -261,6 +273,7 @@ async function main() {
       method: 'wms-getfeatureinfo-sampling',
       severityAvailable: false,
       sampleQueries: requestCount,
+      failedQueries: failedCount,
     },
     points,
   };
@@ -269,6 +282,7 @@ async function main() {
   await writeFile(outPath, JSON.stringify(out), 'utf-8');
 
   console.log(`Collected ${points.length.toLocaleString()} unique Vienna points.`);
+  console.log(`Successful sample requests: ${requestCount}/${QUERY_COUNT + 1} (failed: ${failedCount})`);
   console.log(`Years in capabilities: ${years[0]}-${years[years.length - 1]}`);
   console.log(`Wrote ${outPath}`);
 }

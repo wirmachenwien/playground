@@ -55,6 +55,8 @@ Optional tuning for local fetch speed/coverage:
 WMS_QUERY_COUNT=600 WMS_CONCURRENCY=10 npm run fetch-data
 ```
 
+If you see intermittent `fetch failed` errors from the WMS host, lower `WMS_CONCURRENCY` (default is conservative).
+
 ## Workflows
 
 | Workflow | Trigger | Purpose |
