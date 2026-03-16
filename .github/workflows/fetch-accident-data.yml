@@ -1,0 +1,62 @@
+name: Fetch Accident Data
+
+on:
+  schedule:
+    # Run at 02:00 UTC on the 1st of every month
+    - cron: '0 2 1 * *'
+  workflow_dispatch:
+    inputs:
+      force_refresh:
+        description: 'Force refresh even if data is recent'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-data:
+    name: Fetch and cache Statistik Austria accident data
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: apps/accident-heatmap/package.json
+
+      - name: Install dependencies
+        working-directory: apps/accident-heatmap
+        run: npm install
+
+      - name: Fetch and process accident data
+        working-directory: apps/accident-heatmap
+        run: node scripts/fetch-data.mjs
+        env:
+          NODE_OPTIONS: '--max-old-space-size=512'
+
+      - name: Show data stats
+        working-directory: apps/accident-heatmap
+        run: |
+          echo "=== accidents.json stats ==="
+          wc -c data/accidents.json
+          node -e "
+            const d = JSON.parse(require('fs').readFileSync('data/accidents.json','utf8'));
+            console.log('Vienna accidents:', d.meta.viennaCount);
+            console.log('Years:', d.meta.years.join(', '));
+            console.log('Last updated:', d.meta.lastUpdated);
+          "
+
+      - name: Commit updated data
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: 'apps/accident-heatmap/data/accidents.json'
+          message: 'data: update accident data from Statistik Austria OGD'
+          default_author: github_actions
+          push: true
