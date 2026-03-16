@@ -113,13 +113,14 @@ async function loadData() {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
     const data = await resp.json();
 
-    allPoints = data.points ?? [];
-    metadata  = data.meta  ?? {};
+     allPoints = data.points ?? [];
+     metadata  = data.meta  ?? {};
 
-    populateYearSelects(metadata.years ?? []);
-    updateHeaderMeta();
-    updateHeatmap();
-    showLoading(false);
+     populateYearSelects(metadata.years ?? []);
+      updateSeverityControls();
+     updateHeaderMeta();
+     updateHeatmap();
+     showLoading(false);
   } catch (err) {
     showLoading(false);
     showError(`Failed to load accident data: ${err.message}`);
@@ -222,7 +223,25 @@ function updateHeaderMeta() {
   const updated = metadata.lastUpdated
     ? new Date(metadata.lastUpdated).toLocaleDateString('en-AT', { year: 'numeric', month: 'short', day: 'numeric' })
     : '–';
-  el.textContent = `Vienna: ${(metadata.viennaCount ?? 0).toLocaleString()} accidents · Updated ${updated}`;
+  const severityNote = metadata.severityAvailable === false ? ' · Severity: n/a in source' : '';
+  el.textContent = `Vienna: ${(metadata.viennaCount ?? 0).toLocaleString()} accidents · Updated ${updated}${severityNote}`;
+}
+
+function updateSeverityControls() {
+  const hasFatal = allPoints.some(([, , , flags]) => (flags & FLAG_FATAL) !== 0);
+  const hasSerious = allPoints.some(([, , , flags]) => (flags & FLAG_SERIOUS) !== 0);
+
+  const fatalInput = document.querySelector('input[name="severity"][value="fatal"]');
+  const seriousInput = document.querySelector('input[name="severity"][value="serious"]');
+
+  if (fatalInput) fatalInput.disabled = !hasFatal;
+  if (seriousInput) seriousInput.disabled = !hasSerious;
+
+  if ((state.severity === 'fatal' && !hasFatal) || (state.severity === 'serious' && !hasSerious)) {
+    state.severity = 'all';
+    const allInput = document.querySelector('input[name="severity"][value="all"]');
+    if (allInput) allInput.checked = true;
+  }
 }
 
 function updateStats(showing) {

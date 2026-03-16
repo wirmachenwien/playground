@@ -21,7 +21,9 @@ An interactive web app that renders, styles and exports heat maps of Vienna traf
 
 ## Data
 
-Accident data is fetched from Statistik Austria's Open Government Data portal via a GitHub Actions workflow that runs on the 1st of every month.  The processed JSON is committed back to the repo and served as a static file.
+Accident data is fetched from Statistik Austria's Open Government Data portal ([OGDEXT_UNFALLSRV_1](https://data.statistik.gv.at/web/meta.jsp?dataset=OGDEXT_UNFALLSRV_1)) via WMS `GetFeatureInfo` sampling. The processed JSON is committed back to the repo and served as a static file.
+
+Note: this source currently exposes involvement categories (cyclist/pedestrian/motorcycle) but not injury severity attributes in the feature payload.
 
 **Source:** Straßenverkehrsunfälle mit Personenschaden · Statistik Austria  
 **License:** Creative Commons Attribution 4.0 (CC BY 4.0)
@@ -45,6 +47,12 @@ To fetch fresh data locally:
 cd apps/accident-heatmap
 npm install
 npm run fetch-data
+```
+
+Optional tuning for local fetch speed/coverage:
+
+```bash
+WMS_QUERY_COUNT=600 WMS_CONCURRENCY=10 npm run fetch-data
 ```
 
 ## Workflows
