@@ -80,32 +80,17 @@
               <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="11" r="2"/><circle cx="12.5" cy="11" r="2"/><path d="M3.5 11L8 6l2 2 2.5-2"/></svg>
               Motorcyclists
             </label>
-          </div>
-        </section>
-
-        <!-- Severity filter -->
-        <section class="panel">
-          <h2 class="panel-title">Severity</h2>
-          <div class="radio-group">
-            <label class="radio-label">
-              <input type="radio" name="severity" value="all" checked />
-              <span class="radio-custom"></span>
-              All severities
+            <label class="checkbox-label car">
+              <input type="checkbox" id="filter-car" />
+              <span class="checkbox-custom"></span>
+              <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 9l1.1-2.7A1.5 1.5 0 0 1 5.5 5h5a1.5 1.5 0 0 1 1.4 1L13 9v3h-1.2a1.3 1.3 0 1 1-2.6 0H6.8a1.3 1.3 0 1 1-2.6 0H3V9z"/></svg>
+              Cars (PKW)
             </label>
-            <label class="radio-label fatal">
-              <input type="radio" name="severity" value="fatal" />
-              <span class="radio-custom"></span>
-              Fatal only
-            </label>
-            <label class="radio-label serious">
-              <input type="radio" name="severity" value="serious" />
-              <span class="radio-custom"></span>
-              Serious injury
-            </label>
-            <label class="radio-label minor">
-              <input type="radio" name="severity" value="minor" />
-              <span class="radio-custom"></span>
-              Minor injury
+            <label class="checkbox-label other">
+              <input type="checkbox" id="filter-other" />
+              <span class="checkbox-custom"></span>
+              <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5l1.2 2.6 2.8.3-2.1 2 0.5 2.8L8 7.8 5.6 9.2l0.5-2.8-2.1-2 2.8-.3L8 1.5z"/><circle cx="8" cy="12.2" r="2"/></svg>
+              Other vehicles
             </label>
           </div>
         </section>
@@ -256,7 +241,7 @@
         </button>
       </div>
       <div class="export-section footer-attribution">
-        Data: <a href="https://www.data.gv.at/katalog/dataset/strassenverkehrsunfalle-mit-personenschaden-ab-2009"
+        Data: <a href="https://www.data.gv.at/datasets/77e3a534-8234-38bf-aab0-15f262c2318d?locale=de"
                   target="_blank" rel="noopener">Statistik Austria OGD</a>
         · Map: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
         · <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>

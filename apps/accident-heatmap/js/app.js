@@ -28,7 +28,7 @@ const TILE_LAYERS = {
 };
 
 const COLOR_SCHEMES = {
-  fire:    { 0.0: '#000000', 0.3: '#ff0000', 0.65: '#ff7700', 0.85: '#ffff00', 1.0: '#ffffff' },
+  fire:    { 0.0: 'rgba(0,0,0,0)', 0.3: '#ff0000', 0.65: '#ff7700', 0.85: '#ffff00', 1.0: '#ffffff' },
   classic: { 0.4: '#0000ff', 0.6: '#00ff00', 0.8: '#ffff00', 1.0: '#ff0000' },
   plasma:  { 0.0: '#0d0887', 0.25: '#7e03a8', 0.5: '#cc4778', 0.75: '#f89540', 1.0: '#f0f921' },
   viridis: { 0.0: '#440154', 0.25: '#31688e', 0.5: '#35b779', 0.75: '#b5de2b', 1.0: '#fde725' },
@@ -48,9 +48,16 @@ const ASPECT_RATIOS = {
 const FLAG_CYCLIST    = 1;
 const FLAG_PEDESTRIAN = 2;
 const FLAG_MOTORCYCLE = 4;
-const FLAG_FATAL      = 8;
-const FLAG_SERIOUS    = 16;
-const FLAG_MINOR      = 32;
+const FLAG_CAR        = 64;
+const FLAG_OTHER      = 128;
+
+const INVOLVEMENT_FILTERS = [
+  { stateKey: 'cyclists', id: 'filter-cyclist', flag: FLAG_CYCLIST },
+  { stateKey: 'pedestrians', id: 'filter-pedestrian', flag: FLAG_PEDESTRIAN },
+  { stateKey: 'motorcycles', id: 'filter-motorcycle', flag: FLAG_MOTORCYCLE },
+  { stateKey: 'cars', id: 'filter-car', flag: FLAG_CAR },
+  { stateKey: 'other', id: 'filter-other', flag: FLAG_OTHER },
+];
 
 // ── State ─────────────────────────────────────────────────────────────────
 
@@ -66,7 +73,8 @@ const state = {
   cyclists:     false,
   pedestrians:  false,
   motorcycles:  false,
-  severity:     'all',   // 'all' | 'fatal' | 'serious' | 'minor'
+  cars:         false,
+  other:        false,
   scheme:       'fire',
   radius:       15,
   blur:         20,
@@ -113,14 +121,13 @@ async function loadData() {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
     const data = await resp.json();
 
-     allPoints = data.points ?? [];
-     metadata  = data.meta  ?? {};
+    allPoints = data.points ?? [];
+    metadata  = data.meta  ?? {};
 
-     populateYearSelects(metadata.years ?? []);
-      updateSeverityControls();
-     updateHeaderMeta();
-     updateHeatmap();
-     showLoading(false);
+    populateYearSelects(metadata.years ?? []);
+    updateHeaderMeta();
+    updateHeatmap();
+    showLoading(false);
   } catch (err) {
     showLoading(false);
     showError(`Failed to load accident data: ${err.message}`);
@@ -131,23 +138,18 @@ async function loadData() {
 // ── Filters ───────────────────────────────────────────────────────────────
 
 function getFilteredPoints() {
-  const { yearFrom, yearTo, cyclists, pedestrians, motorcycles, severity } = state;
-  const anyInvolvement = cyclists || pedestrians || motorcycles;
+  const { yearFrom, yearTo } = state;
+  const anyInvolvement = INVOLVEMENT_FILTERS.some(({ stateKey }) => state[stateKey]);
 
   return allPoints.filter(([, , year, flags]) => {
     if (year < yearFrom || year > yearTo) return false;
 
     if (anyInvolvement) {
-      let match = false;
-      if (cyclists    && (flags & FLAG_CYCLIST))    match = true;
-      if (pedestrians && (flags & FLAG_PEDESTRIAN)) match = true;
-      if (motorcycles && (flags & FLAG_MOTORCYCLE)) match = true;
+      const match = INVOLVEMENT_FILTERS.some(({ stateKey, flag }) =>
+        state[stateKey] && (flags & flag)
+      );
       if (!match) return false;
     }
-
-    if (severity === 'fatal'   && !(flags & FLAG_FATAL))   return false;
-    if (severity === 'serious' && !(flags & FLAG_SERIOUS))  return false;
-    if (severity === 'minor'   && !(flags & FLAG_MINOR))    return false;
 
     return true;
   });
@@ -157,16 +159,23 @@ function getFilteredPoints() {
 
 function updateHeatmap() {
   const points = getFilteredPoints();
-  const heatPoints = points.map(([lat, lng]) => [lat, lng, 1]);
 
   if (heatLayer) {
     map.removeLayer(heatLayer);
     heatLayer = null;
   }
 
+  if (points.length === 0) {
+    updateStats(0);
+    return;
+  }
+
+  const heatPoints = points.map(([lat, lng]) => [lat, lng, 1]);
+
   heatLayer = L.heatLayer(heatPoints, {
     radius:  state.radius,
     blur:    state.blur,
+    minOpacity: 0,
     maxZoom: 17,
     max:     1.0,
     gradient: COLOR_SCHEMES[state.scheme],
@@ -217,36 +226,23 @@ function populateYearSelects(years) {
   state.yearTo   = years[years.length - 1];
 }
 
-function updateHeaderMeta() {
+function updateHeaderMeta(showing = null) {
   const el = document.getElementById('header-meta');
   if (!metadata) return;
   const updated = metadata.lastUpdated
     ? new Date(metadata.lastUpdated).toLocaleDateString('en-AT', { year: 'numeric', month: 'short', day: 'numeric' })
     : '–';
-  const severityNote = metadata.severityAvailable === false ? ' · Severity: n/a in source' : '';
-  el.textContent = `Vienna: ${(metadata.viennaCount ?? 0).toLocaleString()} accidents · Updated ${updated}${severityNote}`;
-}
-
-function updateSeverityControls() {
-  const hasFatal = allPoints.some(([, , , flags]) => (flags & FLAG_FATAL) !== 0);
-  const hasSerious = allPoints.some(([, , , flags]) => (flags & FLAG_SERIOUS) !== 0);
-
-  const fatalInput = document.querySelector('input[name="severity"][value="fatal"]');
-  const seriousInput = document.querySelector('input[name="severity"][value="serious"]');
-
-  if (fatalInput) fatalInput.disabled = !hasFatal;
-  if (seriousInput) seriousInput.disabled = !hasSerious;
-
-  if ((state.severity === 'fatal' && !hasFatal) || (state.severity === 'serious' && !hasSerious)) {
-    state.severity = 'all';
-    const allInput = document.querySelector('input[name="severity"][value="all"]');
-    if (allInput) allInput.checked = true;
-  }
+  const total = metadata.viennaCount ?? allPoints.length;
+  const showingText = showing === null
+    ? ''
+    : ` · Showing ${showing.toLocaleString()} now`;
+  el.textContent = `Vienna: ${total.toLocaleString()} accidents${showingText} · Updated ${updated}`;
 }
 
 function updateStats(showing) {
   document.getElementById('stat-showing').textContent = showing.toLocaleString();
   document.getElementById('stat-total').textContent   = (metadata?.viennaCount ?? allPoints.length).toLocaleString();
+  updateHeaderMeta(showing);
 }
 
 // ── Selection box ─────────────────────────────────────────────────────────
@@ -508,33 +504,17 @@ function bindControls() {
   // Involvement checkboxes
   document.getElementById('filter-all').addEventListener('change', e => {
     if (e.target.checked) {
-      state.cyclists = state.pedestrians = state.motorcycles = false;
-      document.getElementById('filter-cyclist').checked    = false;
-      document.getElementById('filter-pedestrian').checked = false;
-      document.getElementById('filter-motorcycle').checked = false;
+      INVOLVEMENT_FILTERS.forEach(({ stateKey, id }) => {
+        state[stateKey] = false;
+        document.getElementById(id).checked = false;
+      });
     }
     updateHeatmap();
   });
-  document.getElementById('filter-cyclist').addEventListener('change', e => {
-    state.cyclists = e.target.checked;
-    syncAllCheckbox();
-    updateHeatmap();
-  });
-  document.getElementById('filter-pedestrian').addEventListener('change', e => {
-    state.pedestrians = e.target.checked;
-    syncAllCheckbox();
-    updateHeatmap();
-  });
-  document.getElementById('filter-motorcycle').addEventListener('change', e => {
-    state.motorcycles = e.target.checked;
-    syncAllCheckbox();
-    updateHeatmap();
-  });
-
-  // Severity radios
-  document.querySelectorAll('input[name="severity"]').forEach(r => {
-    r.addEventListener('change', e => {
-      state.severity = e.target.value;
+  INVOLVEMENT_FILTERS.forEach(({ stateKey, id }) => {
+    document.getElementById(id).addEventListener('change', e => {
+      state[stateKey] = e.target.checked;
+      syncAllCheckbox();
       updateHeatmap();
     });
   });
@@ -602,7 +582,7 @@ function clampYears() {
 }
 
 function syncAllCheckbox() {
-  const anyActive = state.cyclists || state.pedestrians || state.motorcycles;
+  const anyActive = INVOLVEMENT_FILTERS.some(({ stateKey }) => state[stateKey]);
   document.getElementById('filter-all').checked = !anyActive;
 }
 

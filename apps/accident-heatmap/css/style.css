@@ -22,6 +22,8 @@
   --cyclist:     #4fc3f7;
   --pedestrian:  #a5d6a7;
   --motorcycle:  #ffb74d;
+  --car:         #f48fb1;
+  --other:       #b39ddb;
   --sidebar-w:   280px;
   --header-h:    56px;
   --export-h:    52px;
@@ -228,10 +230,8 @@ html, body {
 .checkbox-label.cyclist svg { color: var(--cyclist); }
 .checkbox-label.pedestrian svg { color: var(--pedestrian); }
 .checkbox-label.motorcycle svg { color: var(--motorcycle); }
-
-.radio-label.fatal { color: var(--danger); }
-.radio-label.serious { color: var(--accent-2); }
-.radio-label.minor { color: var(--success); }
+.checkbox-label.car svg { color: var(--car); }
+.checkbox-label.other svg { color: var(--other); }
 
 /* Color schemes */
 .color-schemes {

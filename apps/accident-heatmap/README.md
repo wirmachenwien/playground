@@ -1,14 +1,13 @@
 # Vienna Accident Heatmap
 
-An interactive web app that renders, styles and exports heat maps of Vienna traffic accidents using data from the [Statistik Austria OGD](https://www.data.gv.at/katalog/dataset/strassenverkehrsunfalle-mit-personenschaden-ab-2009).
+An interactive web app that renders, styles and exports heat maps of Vienna traffic accidents using data from the [Statistik Austria OGD](https://www.data.gv.at/datasets/77e3a534-8234-38bf-aab0-15f262c2318d?locale=de).
 
 ## Features
 
 - **Heatmap visualisation** – all accidents in Vienna rendered as a density heatmap on an interactive map
 - **Filtering**
   - Year range (2009 → current)
-  - Involvement type: cyclists · pedestrians · motorcyclists
-  - Severity: fatal · serious injury · minor injury
+  - Involvement type: cyclists · pedestrians · motorcyclists · cars (PKW) · other vehicles
 - **Customisation**
   - 5 colour schemes (Fire, Classic, Plasma, Viridis, Cool)
   - Adjustable radius, blur and opacity
@@ -21,9 +20,9 @@ An interactive web app that renders, styles and exports heat maps of Vienna traf
 
 ## Data
 
-Accident data is fetched from Statistik Austria's Open Government Data portal ([OGDEXT_UNFALLSRV_1](https://data.statistik.gv.at/web/meta.jsp?dataset=OGDEXT_UNFALLSRV_1)) via WMS `GetFeatureInfo` sampling. The processed JSON is committed back to the repo and served as a static file.
+Accident data is fetched from Statistik Austria's Open Government Data portal ([77e3a534-8234-38bf-aab0-15f262c2318d](https://www.data.gv.at/datasets/77e3a534-8234-38bf-aab0-15f262c2318d?locale=de)) via WMS `GetFeatureInfo` sampling. The processed JSON is committed back to the repo and served as a static file.
 
-Note: this source currently exposes involvement categories (cyclist/pedestrian/motorcycle) but not injury severity attributes in the feature payload.
+Note: this source exposes involvement categories (cyclist/pedestrian/motorcycle/car/other) but not injury severity attributes in the feature payload.
 
 **Source:** Straßenverkehrsunfälle mit Personenschaden · Statistik Austria  
 **License:** Creative Commons Attribution 4.0 (CC BY 4.0)
