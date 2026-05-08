@@ -20,9 +20,9 @@ An interactive web app that renders, styles and exports heat maps of Vienna traf
 
 ## Data
 
-Accident data is fetched from Statistik Austria's Open Government Data portal ([77e3a534-8234-38bf-aab0-15f262c2318d](https://www.data.gv.at/datasets/77e3a534-8234-38bf-aab0-15f262c2318d?locale=de)) via WMS `GetFeatureInfo` sampling. The processed JSON is committed back to the repo and served as a static file.
+Accident data is fetched from Statistik Austria's Open Government Data portal ([77e3a534-8234-38bf-aab0-15f262c2318d](https://www.data.gv.at/datasets/77e3a534-8234-38bf-aab0-15f262c2318d?locale=de)) via the ATLAS_UNFALL_OPEN WFS service and full `GetFeature` pagination.
 
-Note: this source exposes involvement categories (cyclist/pedestrian/motorcycle/car/other) but not injury severity attributes in the feature payload.
+The fetch script now downloads **all available accident features in Austria from 2013 onward**, stores full per-accident property payloads in `records`, and additionally emits compact `points` for heatmap rendering. The processed JSON is committed back to the repo and served as a static file.
 
 **Source:** Straßenverkehrsunfälle mit Personenschaden · Statistik Austria  
 **License:** Creative Commons Attribution 4.0 (CC BY 4.0)
@@ -51,10 +51,10 @@ npm run fetch-data
 Optional tuning for local fetch speed/coverage:
 
 ```bash
-WMS_QUERY_COUNT=600 WMS_CONCURRENCY=10 npm run fetch-data
+WFS_PAGE_SIZE=10000 ACCIDENT_YEAR_FROM=2013 npm run fetch-data
 ```
 
-If you see intermittent `fetch failed` errors from the WMS host, lower `WMS_CONCURRENCY` (default is conservative).
+If you see intermittent `fetch failed` errors from the Statistik Austria host, lower `WFS_PAGE_SIZE` and retry.
 
 ## Workflows
 
